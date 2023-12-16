@@ -13,12 +13,16 @@ parser.add_argument('--log_to', type=str, default='print',
                     help='logging destination, "print" or a filepath (default: print)')
 
 # -- Load balance --
-parser.add_argument('--num_servers', type=int, default=10,
+parser.add_argument('--num_servers', type=int, default=50,
                     help='number of servers (default: 10)')
 parser.add_argument('--num_stream_jobs', type=int, default=1000,
                     help='number of streaming jobs (default: 1000)')
 parser.add_argument('--service_rates', type=float,
-                    default=[0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1.05],
+                    default=[0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1.05,
+                             1.15, 1.25, 1.35, 1.45, 1.55, 1.65, 1.75, 1.85, 1.95, 2.05,
+                             2.15, 2.25, 2.35, 2.45, 2.55, 2.65, 2.75, 2.85, 2.95, 3.05,
+                             3.15, 3.25, 3.35, 3.45, 3.55, 3.65, 3.75, 3.85, 3.95, 4.05,
+                             4.15, 4.25, 4.35, 4.45, 4.55, 4.65, 4.75, 4.85, 4.95, 5.05],
                     nargs='+', help='workers service rates '
                     '(default: [0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85, 0.95, 1.05])')
 parser.add_argument('--job_interval', type=int, default=55,

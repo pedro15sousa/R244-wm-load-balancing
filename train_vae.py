@@ -13,7 +13,7 @@ from torchvision.utils import save_image
 from models.vae import VAE
 
 from utils.misc import save_checkpoint
-from utils.misc import LSIZE, RED_SIZE
+from utils.misc import LSIZE, RED_SIZE, ASIZE
 ## WARNING : THIS SHOULD BE REPLACE WITH PYTORCH 0.5
 from utils.learning import EarlyStopping
 from utils.learning import ReduceLROnPlateau
@@ -40,8 +40,8 @@ torch.backends.cudnn.benchmark = True
 
 device = torch.device("cuda" if cuda else "cpu")
 
-# 11 is the number of dimensions in my space: 10 servers + 1 job size
-model = VAE(11, LSIZE).to(device)
+# 51 is the number of dimensions in my space: 50 servers + 1 job size
+model = VAE(ASIZE+1, LSIZE).to(device)
 optimizer = optim.Adam(model.parameters())
 scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.5, patience=5)
 earlystopping = EarlyStopping('min', patience=30)
@@ -158,8 +158,6 @@ if __name__ == "__main__":
             'scheduler': scheduler.state_dict(),
             'earlystopping': earlystopping.state_dict()
         }, is_best, filename, best_filename)
-
-
 
         if not args.nosamples:
             with torch.no_grad():
