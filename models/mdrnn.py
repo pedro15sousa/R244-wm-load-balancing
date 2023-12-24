@@ -4,7 +4,7 @@ the world (world model) on the latent space.
 """
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
+import torch.nn.functional as f
 from torch.distributions import Normal
 
 def gmm_loss(batch, mus, sigmas, logpi, reduce=True): # pylint: disable=too-many-arguments
@@ -62,8 +62,10 @@ class _MDRNNBase(nn.Module):
 class MDRNN(_MDRNNBase):
     """ MDRNN model for multi steps forward """
     def __init__(self, latents, actions, hiddens, gaussians):
+
         super().__init__(latents, actions, hiddens, gaussians)
         self.rnn = nn.LSTM(latents + actions, hiddens)
+        print(latents+actions)
 
     def forward(self, actions, latents): # pylint: disable=arguments-differ
         """ MULTI STEPS forward.
@@ -84,6 +86,8 @@ class MDRNN(_MDRNNBase):
 
         ins = torch.cat([actions, latents], dim=-1)
         outs, _ = self.rnn(ins)
+        # print("Are there NaNs in RNN output?", torch.isnan(outs).any())
+
         gmm_outs = self.gmm_linear(outs)
 
         stride = self.gaussians * self.latents

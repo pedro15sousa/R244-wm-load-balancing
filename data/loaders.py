@@ -67,6 +67,7 @@ class _RolloutDataset(torch.utils.data.Dataset):
         batch_std = np.std(obs, axis=0)
         batch_std = np.where(batch_std == 0, 1, batch_std)
         obs = (obs - batch_mean) / batch_std  # Avoid division by zero
+        obs = obs.astype(np.float32) # Convert to float32
         return obs
 
     def _get_data(self, data, seq_index):
@@ -122,14 +123,25 @@ class RolloutSequenceDataset(_RolloutDataset):
         # return obs, action, reward, terminal, next_obs
         # Extract the relevant sequence of states
         
-        obs = data['observations'][seq_index:seq_index + self._seq_len + 1].astype(np.float32)
+        obs_data = data['observations'][seq_index:seq_index + self._seq_len + 1].astype(np.float32)
+        # obs = self._normalize(obs)
+        obs, next_obs = obs_data[:-1].astype(np.float32), obs_data[1:].astype(np.float32)
         obs = self._normalize(obs)
-        action = data['actions'][seq_index:seq_index + self._seq_len + 1].astype(np.float32)
-        reward = data['rewards'][seq_index:seq_index + self._seq_len + 1].astype(np.float32)
-        terminal = data['terminals'][seq_index:seq_index + self._seq_len + 1].astype(np.float32)
+        next_obs = self._normalize(next_obs)
 
-        # Assuming next observation is the following state in the sequence
-        next_obs = data['observations'][seq_index + 1:seq_index + self._seq_len + 2]
+        # action = data['actions'][seq_index:seq_index + self._seq_len + 1].astype(np.float32)
+        # reward = data['rewards'][seq_index:seq_index + self._seq_len + 1].astype(np.float32)
+        # terminal = data['terminals'][seq_index:seq_index + self._seq_len + 1].astype(np.float32)
+        
+        action = data['actions'][seq_index+1:seq_index + self._seq_len + 1]
+        action = action.astype(np.float32)
+
+        reward, terminal = [data[key][seq_index+1:
+                                      seq_index + self._seq_len + 1].astype(np.float32)
+                            for key in ('rewards', 'terminals')]
+
+        # # Assuming next observation is the following state in the sequence
+        # next_obs = data['observations'][seq_index + 1:seq_index + self._seq_len + 2]
         
         # Returning the sequence as a tuple
         return obs, action, reward, terminal, next_obs

@@ -32,6 +32,7 @@ parser.add_argument('--nosamples', action='store_true',
 
 args = parser.parse_args()
 cuda = torch.cuda.is_available()
+torch.autograd.set_detect_anomaly(True)
 
 
 torch.manual_seed(123)
