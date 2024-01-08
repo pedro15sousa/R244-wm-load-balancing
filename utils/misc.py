@@ -9,7 +9,7 @@ from models import MDRNNCell, VAE, Controller
 
 # Hardcoded for now
 ASIZE, LSIZE, RSIZE, RED_SIZE, SIZE =\
-    50, 22, 256, 64, 64
+    10, 22, 256, 64, 64
 
 def hot_encode_action(action):
     # Create a zero tensor for one-hot encoding
@@ -180,6 +180,7 @@ class RolloutGenerator(object):
             obs = torch.from_numpy(obs).float().unsqueeze(0).to(self.device)
             sacalar_action, hidden = self.get_action_and_transition(obs, hidden)
             obs, reward, done, _ = self.env.step(sacalar_action)
+            print("Reward: ", reward)
 
             if render:
                 self.env.render()
@@ -187,7 +188,7 @@ class RolloutGenerator(object):
             cumulative += reward
   
             if done or i > self.time_limit:
-                print(cumulative)
-                print(- cumulative)
+                # print(cumulative)
+                # print(- cumulative)
                 return - cumulative
             i += 1
