@@ -49,7 +49,7 @@ def load_vae():
 
 def load_data():
     dataset_train = RolloutSequenceDataset('datasets/loadbalancing', SEQ_LEN, train=True, buffer_size=30)
-    dataset_test = RolloutSequenceDataset('datasets/loadbalancing', SEQ_LEN, train=False, buffer_size=10)
+    dataset_test = RolloutSequenceDataset('datasets/loadbalancing', SEQ_LEN, train=False, buffer_size=30)
 
     train_loader = DataLoader(
         dataset_train, batch_size=BSIZE, shuffle=True, num_workers=8)
