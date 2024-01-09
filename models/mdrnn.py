@@ -86,8 +86,6 @@ class MDRNN(_MDRNNBase):
         """
         actions = actions.to(device)
         state = state.to(device)
-        print(actions.device)
-        print(state.device)
 
         seq_len, bs = actions.size(0), actions.size(1)
 
