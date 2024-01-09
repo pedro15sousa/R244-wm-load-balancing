@@ -70,48 +70,8 @@ def process_action(action):
     return one_hot_actions
 
 
-def to_latent(obs, next_obs):
-    """ Transform observations to latent space.
-
-    :args obs: 5D torch tensor (BSIZE, SEQ_LEN, ASIZE, SIZE, SIZE)
-    :args next_obs: 5D torch tensor (BSIZE, SEQ_LEN, ASIZE, SIZE, SIZE)
-
-    :returns: (latent_obs, latent_next_obs)
-        - latent_obs: 4D torch tensor (BSIZE, SEQ_LEN, LSIZE)
-        - next_latent_obs: 4D torch tensor (BSIZE, SEQ_LEN, LSIZE)
-    """
-    with torch.no_grad():
-        # print("Original obs shape:", obs.shape)
-        # print("Original next_obs shape:", next_obs.shape)
-
-        # Original input processed by VAE - VAE forward method returns (reconstructed_x, mean_latent_space, logsigma_latent_space)
-        obs_results, next_obs_results = vae(obs)[1:], vae(next_obs)[1:]
-
-        # print("VAE processed obs shape:", obs_results[0].shape)
-        # print("VAE processed next_obs shape:", next_obs_results[0].shape)
-
-        # Extract mu and logsigma for both obs and next_obs
-        obs_mu, obs_logsigma = obs_results
-        next_obs_mu, next_obs_logsigma = next_obs_results
-
-        # # Exclude the last element of obs and the first element of next_obs
-        # obs_mu, obs_logsigma = obs_mu[:, :-1, :], obs_logsigma[:, :-1, :]
-        # next_obs_mu, next_obs_logsigma = next_obs_mu[:, 1:, :], next_obs_logsigma[:, 1:, :]
-
-        # Process the results for obs and next_obs
-        latent_obs, latent_next_obs = [
-            (x_mu + x_logsigma.exp() * torch.randn_like(x_mu))
-            for x_mu, x_logsigma in
-            [(obs_mu, obs_logsigma), (next_obs_mu, next_obs_logsigma)]]
-        
-        # print("latent_obs shape:", latent_obs.shape)
-        # print("latent_next_obs shape:", latent_next_obs.shape)
-    
-        return latent_obs, latent_next_obs
-
-
-def get_loss(latent_obs, action, reward, terminal,
-             latent_next_obs, include_reward: bool):
+def get_loss(obs, action, reward, terminal,
+             next_obs, include_reward: bool):
     """ Compute losses.
 
     The loss that is computed is:
@@ -129,17 +89,22 @@ def get_loss(latent_obs, action, reward, terminal,
     :returns: dictionary of losses, containing the gmm, the mse, the bce and
         the averaged loss.
     """
-    latent_obs, action,\
+    obs, action,\
         reward, terminal,\
-        latent_next_obs = [arr.transpose(1, 0)
-                           for arr in [latent_obs, action,
+        next_obs = [arr.transpose(1, 0)
+                           for arr in [obs, action,
                                        reward, terminal,
-                                       latent_next_obs]]
-
+                                       next_obs]]
+    
+    print("\n--------------------")
+    print("action shape: ", action.shape)
+    print("obs shape: ", obs.shape)
+    print("reward shape: ", reward.shape)
+    print("next_obs shape: ", next_obs.shape)
     action = process_action(action)
     # print("action shape: ", action.shape)
-    mus, sigmas, logpi, rs, ds = mdrnn(action, latent_obs)
-    gmm = gmm_loss(latent_next_obs, mus, sigmas, logpi)
+    mus, sigmas, logpi, rs, ds = mdrnn(action, obs)
+    gmm = gmm_loss(next_obs, mus, sigmas, logpi)
     bce = f.binary_cross_entropy_with_logits(ds, terminal)
     if include_reward:
         mse = f.mse_loss(rs, reward)
@@ -178,19 +143,19 @@ def data_pass(epoch, train, include_reward): # pylint: disable=too-many-locals
         # print("--------------------\n")
 
         # transform obs
-        latent_obs, latent_next_obs = to_latent(obs, next_obs)
+        # latent_obs, latent_next_obs = to_latent(obs, next_obs)
 
         if train:
-            losses = get_loss(latent_obs, action, reward,
-                              terminal, latent_next_obs, include_reward)
+            losses = get_loss(obs, action, reward,
+                              terminal, next_obs, include_reward)
 
             optimizer.zero_grad()
             losses['loss'].backward()
             optimizer.step()
         else:
             with torch.no_grad():
-                losses = get_loss(latent_obs, action, reward,
-                                  terminal, latent_next_obs, include_reward)
+                losses = get_loss(obs, action, reward,
+                                  terminal, next_obs, include_reward)
 
         cum_loss += losses['loss'].item()
         cum_gmm += losses['gmm'].item()
@@ -214,7 +179,7 @@ if __name__ == "__main__":
     # epochs = 30
 
     # Loading VAE
-    vae, state = load_vae()
+    # vae, state = load_vae()
 
     # Loading model (if it exists already)
     rnn_dir = join(args.logdir, 'mdrnn')
@@ -236,8 +201,8 @@ if __name__ == "__main__":
                 rnn_state["epoch"], rnn_state["precision"]))
         mdrnn.load_state_dict(rnn_state["state_dict"])
         optimizer.load_state_dict(rnn_state["optimizer"])
-        scheduler.load_state_dict(state['scheduler'])
-        earlystopping.load_state_dict(state['earlystopping'])
+        # scheduler.load_state_dict(state['scheduler'])
+        # earlystopping.load_state_dict(state['earlystopping'])
 
 
     # Data Loading
