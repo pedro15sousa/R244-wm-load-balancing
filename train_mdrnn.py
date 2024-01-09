@@ -52,9 +52,9 @@ def load_data():
     dataset_test = RolloutSequenceDataset('datasets/loadbalancing', SEQ_LEN, train=False, buffer_size=30)
 
     train_loader = DataLoader(
-        dataset_train, batch_size=BSIZE, shuffle=True, num_workers=8)
+        dataset_train, batch_size=BSIZE, shuffle=True, num_workers=2)
     test_loader = DataLoader(
-        dataset_test, batch_size=BSIZE, num_workers=8)
+        dataset_test, batch_size=BSIZE, num_workers=2)
 
     return dataset_test, dataset_train, test_loader, train_loader
 
