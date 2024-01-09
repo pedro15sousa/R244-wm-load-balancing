@@ -7,6 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as f
 from torch.distributions import Normal
 
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
 def gmm_loss(batch, mus, sigmas, logpi, reduce=True): # pylint: disable=too-many-arguments
     """ Computes the gmm loss.
 
@@ -46,28 +48,28 @@ def gmm_loss(batch, mus, sigmas, logpi, reduce=True): # pylint: disable=too-many
     return - log_prob
 
 class _MDRNNBase(nn.Module):
-    def __init__(self, state_size, actions, hiddens, gaussians):
+    def __init__(self, state, actions, hiddens, gaussians):
         super().__init__()
-        self.state_size = state_size
+        self.state = state
         self.actions = actions
         self.hiddens = hiddens
         self.gaussians = gaussians
 
         self.gmm_linear = nn.Linear(
-            hiddens, (2 * self.state_size + 1) * gaussians + 2)
+            hiddens, (2 * self.state + 1) * gaussians + 2)
 
     def forward(self, *inputs):
         pass
 
 class MDRNN(_MDRNNBase):
     """ MDRNN model for multi steps forward """
-    def __init__(self, state_size, actions, hiddens, gaussians):
+    def __init__(self, state, actions, hiddens, gaussians):
 
-        super().__init__(state_size, actions, hiddens, gaussians)
-        self.rnn = nn.LSTM(state_size + actions, hiddens)
-        print(state_size+actions)
+        super().__init__(state, actions, hiddens, gaussians)
+        self.rnn = nn.LSTM(state + actions, hiddens)
+        print(state+actions)
 
-    def forward(self, actions, state_size): # pylint: disable=arguments-differ
+    def forward(self, actions, state): # pylint: disable=arguments-differ
         """ MULTI STEPS forward.
 
         :args actions: (SEQ_LEN, BSIZE, ASIZE) torch tensor
@@ -82,21 +84,24 @@ class MDRNN(_MDRNNBase):
             - rs: (SEQ_LEN, BSIZE) torch tensor
             - ds: (SEQ_LEN, BSIZE) torch tensor
         """
+        actions.to(device)
+        state.to(device)
+
         seq_len, bs = actions.size(0), actions.size(1)
 
-        ins = torch.cat([actions, state_size], dim=-1)
+        ins = torch.cat([actions, state], dim=-1)
         outs, _ = self.rnn(ins)
         # print("Are there NaNs in RNN output?", torch.isnan(outs).any())
 
         gmm_outs = self.gmm_linear(outs)
 
-        stride = self.gaussians * self.state_size
+        stride = self.gaussians * self.state
 
         mus = gmm_outs[:, :, :stride]
-        mus = mus.view(seq_len, bs, self.gaussians, self.state_size)
+        mus = mus.view(seq_len, bs, self.gaussians, self.state)
 
         sigmas = gmm_outs[:, :, stride:2 * stride]
-        sigmas = sigmas.view(seq_len, bs, self.gaussians, self.state_size)
+        sigmas = sigmas.view(seq_len, bs, self.gaussians, self.state)
         sigmas = torch.exp(sigmas)
 
         pi = gmm_outs[:, :, 2 * stride: 2 * stride + self.gaussians]
@@ -111,11 +116,11 @@ class MDRNN(_MDRNNBase):
 
 class MDRNNCell(_MDRNNBase):
     """ MDRNN model for one step forward """
-    def __init__(self, state_size, actions, hiddens, gaussians):
-        super().__init__(state_size, actions, hiddens, gaussians)
-        self.rnn = nn.LSTMCell(state_size + actions, hiddens)
+    def __init__(self, state, actions, hiddens, gaussians):
+        super().__init__(state, actions, hiddens, gaussians)
+        self.rnn = nn.LSTMCell(state + actions, hiddens)
 
-    def forward(self, action, state_size, hidden): # pylint: disable=arguments-differ
+    def forward(self, action, state, hidden): # pylint: disable=arguments-differ
         """ ONE STEP forward.
 
         :args actions: (BSIZE, ASIZE) torch tensor
@@ -131,20 +136,24 @@ class MDRNNCell(_MDRNNBase):
             - rs: (BSIZE) torch tensor
             - ds: (BSIZE) torch tensor
         """
-        in_al = torch.cat([action, state_size], dim=1)
+        action.to(device)
+        state.to(device)
+        hidden.to(device)
+
+        in_al = torch.cat([action, state], dim=1)
 
         next_hidden = self.rnn(in_al, hidden)
         out_rnn = next_hidden[0]
 
         out_full = self.gmm_linear(out_rnn)
 
-        stride = self.gaussians * self.state_size
+        stride = self.gaussians * self.state
 
         mus = out_full[:, :stride]
-        mus = mus.view(-1, self.gaussians, self.state_size)
+        mus = mus.view(-1, self.gaussians, self.state)
 
         sigmas = out_full[:, stride:2 * stride]
-        sigmas = sigmas.view(-1, self.gaussians, self.state_size)
+        sigmas = sigmas.view(-1, self.gaussians, self.state)
         sigmas = torch.exp(sigmas)
 
         pi = out_full[:, 2 * stride:2 * stride + self.gaussians]
