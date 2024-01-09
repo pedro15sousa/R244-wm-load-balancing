@@ -1,3 +1,0 @@
-[submodule "park/envs/abr/local-unix-proxy"]
-	path = park/envs/abr/local-unix-proxy
-	url = https://github.com/akshayknarayan/local-unix-proxy

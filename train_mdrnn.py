@@ -96,11 +96,11 @@ def get_loss(obs, action, reward, terminal,
                                        reward, terminal,
                                        next_obs]]
     
-    print("\n--------------------")
-    print("action shape: ", action.shape)
-    print("obs shape: ", obs.shape)
-    print("reward shape: ", reward.shape)
-    print("next_obs shape: ", next_obs.shape)
+    # print("\n--------------------")
+    # print("action shape: ", action.shape)
+    # print("obs shape: ", obs.shape)
+    # print("reward shape: ", reward.shape)
+    # print("n")
     action = process_action(action)
     # print("action shape: ", action.shape)
     mus, sigmas, logpi, rs, ds = mdrnn(action, obs)
@@ -174,8 +174,8 @@ def data_pass(epoch, train, include_reward): # pylint: disable=too-many-locals
 
 if __name__ == "__main__":
     # constants
-    BSIZE = 16
-    SEQ_LEN = 32
+    BSIZE = 24
+    SEQ_LEN = 12
     # epochs = 30
 
     # Loading VAE
@@ -201,8 +201,12 @@ if __name__ == "__main__":
                 rnn_state["epoch"], rnn_state["precision"]))
         mdrnn.load_state_dict(rnn_state["state_dict"])
         optimizer.load_state_dict(rnn_state["optimizer"])
-        # scheduler.load_state_dict(state['scheduler'])
-        # earlystopping.load_state_dict(state['earlystopping'])
+        
+        # Load only if the scheduler and early stopping states were saved with MDRNN
+        if 'scheduler' in rnn_state:
+            scheduler.load_state_dict(rnn_state['scheduler'])
+        if 'earlystopping' in rnn_state:
+            earlystopping.load_state_dict(rnn_state['earlystopping'])
 
 
     # Data Loading
