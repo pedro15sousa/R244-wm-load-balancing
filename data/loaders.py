@@ -8,7 +8,7 @@ import torch.utils.data
 import numpy as np
 
 class _RolloutDataset(torch.utils.data.Dataset):
-    def __init__(self, root, buffer_size=200, train=True):
+    def __init__(self, root, buffer_size=1000, train=True):
 
         self._files = [
             join(root, sd, ssd)
