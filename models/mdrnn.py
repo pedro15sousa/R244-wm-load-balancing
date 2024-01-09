@@ -84,8 +84,10 @@ class MDRNN(_MDRNNBase):
             - rs: (SEQ_LEN, BSIZE) torch tensor
             - ds: (SEQ_LEN, BSIZE) torch tensor
         """
-        actions.to(device)
-        state.to(device)
+        actions = actions.to(device)
+        state = state.to(device)
+        print(actions.device)
+        print(state.device)
 
         seq_len, bs = actions.size(0), actions.size(1)
 
@@ -136,9 +138,9 @@ class MDRNNCell(_MDRNNBase):
             - rs: (BSIZE) torch tensor
             - ds: (BSIZE) torch tensor
         """
-        action.to(device)
-        state.to(device)
-        hidden.to(device)
+        action = action.to(device)
+        state = state.to(device)
+        hidden = hidden.to(device)
 
         in_al = torch.cat([action, state], dim=1)
 
