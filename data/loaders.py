@@ -8,7 +8,7 @@ import torch.utils.data
 import numpy as np
 
 class _RolloutDataset(torch.utils.data.Dataset):
-    def __init__(self, root, buffer_size=1000, train=True):
+    def __init__(self, root, buffer_size=550, train=True):
 
         self._files = [
             join(root, sd, ssd)
@@ -120,7 +120,7 @@ class RolloutSequenceDataset(_RolloutDataset):
     :args transform: transformation of the observations
     :args train: if True, train data, else test
     """
-    def __init__(self, root, seq_len, buffer_size=200, train=True):
+    def __init__(self, root, seq_len, buffer_size=1000, train=True):
         super().__init__(root, buffer_size, train)
         self._seq_len = seq_len
 
