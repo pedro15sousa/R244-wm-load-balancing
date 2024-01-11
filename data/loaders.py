@@ -63,26 +63,26 @@ class _RolloutDataset(torch.utils.data.Dataset):
         return self._get_data(data, seq_index)
     
     def _normalize(self, obs):
-        # batch_mean = np.mean(obs, axis=0)
-        # batch_std = np.std(obs, axis=0)
-        # batch_std = np.where(batch_std == 0, 1, batch_std)
-        # obs = (obs - batch_mean) / batch_std  # Avoid division by zero
-        # obs = obs.astype(np.float32) # Convert to float32
-        # return obs
-        # Find the minimum and maximum values in the observation
-        min_val = np.min(obs, axis=0)
-        max_val = np.max(obs, axis=0)
-
-        # Avoid division by zero by setting denominators of 0 to 1
-        denom = np.where(max_val - min_val == 0, 1, max_val - min_val)
-
-        # Normalize the observations
-        obs = (obs - min_val) / denom
-
-        # Ensure the data type is float32
-        obs = obs.astype(np.float32)
-        
+        batch_mean = np.mean(obs, axis=0)
+        batch_std = np.std(obs, axis=0)
+        batch_std = np.where(batch_std == 0, 1, batch_std)
+        obs = (obs - batch_mean) / batch_std  # Avoid division by zero
+        obs = obs.astype(np.float32) # Convert to float32
         return obs
+        # # Find the minimum and maximum values in the observation
+        # min_val = np.min(obs, axis=0)
+        # max_val = np.max(obs, axis=0)
+
+        # # Avoid division by zero by setting denominators of 0 to 1
+        # denom = np.where(max_val - min_val == 0, 1, max_val - min_val)
+
+        # # Normalize the observations
+        # obs = (obs - min_val) / denom
+
+        # # Ensure the data type is float32
+        # obs = obs.astype(np.float32)
+        
+        # return obs
 
     def _get_data(self, data, seq_index):
         pass
