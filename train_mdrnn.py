@@ -9,7 +9,7 @@ from torch.utils.data import DataLoader
 from torchvision import transforms
 import numpy as np
 from tqdm import tqdm
-from utils.misc import save_checkpoint
+from utils.misc import save_checkpoint, hot_encode_action
 from utils.misc import ASIZE, LSIZE, RSIZE, RED_SIZE, SIZE
 from utils.learning import EarlyStopping
 ## WARNING : THIS SHOULD BE REPLACED WITH PYTORCH 0.5
@@ -17,7 +17,7 @@ from utils.learning import ReduceLROnPlateau
 
 from data.loaders import RolloutSequenceDataset
 from models.vae import VAE
-from models.mdrnn import MDRNN, gmm_loss
+from models.mdrnn import MDRNN, MDRNNCell, gmm_loss
 
 
 parser = argparse.ArgumentParser("MDRNN training")
@@ -135,13 +135,6 @@ def data_pass(epoch, train, include_reward): # pylint: disable=too-many-locals
     pbar = tqdm(total=len(loader.dataset), desc="Epoch {}".format(epoch))
     for i, data in enumerate(loader):
         obs, action, reward, terminal, next_obs = [arr.float().to(device) for arr in data]
-        # print("\n--------------------")
-        # print("action shape: ", action.shape)
-        # print("latent_obs shape: ", obs.shape)
-        # print("reward shape: ", reward.shape)
-        # print("terminal shape: ", terminal.shape)
-        # print("--------------------\n")
-
         # transform obs
         # latent_obs, latent_next_obs = to_latent(obs, next_obs)
 
@@ -195,7 +188,7 @@ if __name__ == "__main__":
     earlystopping = EarlyStopping('min', patience=30)
 
     if exists(rnn_file) and not args.noreload:
-        rnn_state = torch.load(rnn_file)
+        rnn_state = torch.load(rnn_file, map_location=device)
         print("Loading MDRNN at epoch {} "
             "with test error {}".format(
                 rnn_state["epoch"], rnn_state["precision"]))
@@ -207,7 +200,6 @@ if __name__ == "__main__":
             scheduler.load_state_dict(rnn_state['scheduler'])
         if 'earlystopping' in rnn_state:
             earlystopping.load_state_dict(rnn_state['earlystopping'])
-
 
     # Data Loading
     dataset_test, dataset_train, test_loader, train_loader = load_data()

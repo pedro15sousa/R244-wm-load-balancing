@@ -138,7 +138,7 @@ class MDRNNCell(_MDRNNBase):
         """
         action = action.to(device)
         state = state.to(device)
-        hidden = hidden.to(device)
+        # hidden = hidden.to(device)
 
         in_al = torch.cat([action, state], dim=1)
 

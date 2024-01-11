@@ -135,6 +135,7 @@ def evaluate(solutions, results, rollouts=100):
             sleep(.1)
         restimates.append(r_queue.get()[1])
 
+    print("Evaluation finished: ", np.mean(restimates))
     return best_guess, np.mean(restimates), np.std(restimates)
 
 
@@ -183,6 +184,7 @@ if __name__ == '__main__':
     # p_queue, r_queue, e_queue = set_queues(num_workers)
 
     while not es.stop():
+        print("\n********** Generation {} ************".format(epoch))
         if cur_best is not None and - cur_best > args.target_return:
             print("Already better than target, breaking...")
             break
@@ -215,7 +217,8 @@ if __name__ == '__main__':
         if epoch % log_step == log_step - 1:
             best_params, best, std_best = evaluate(solutions, r_list)
             print("Current evaluation: {}".format(-best))
-            if not cur_best or cur_best < best:
+            if cur_best != None: print("Current overall best: {}".format(-cur_best))
+            if not cur_best or best < cur_best:
                 cur_best = best
                 print("Saving new best with value {}+-{}...".format(-cur_best, std_best))
                 load_parameters(best_params, controller)
