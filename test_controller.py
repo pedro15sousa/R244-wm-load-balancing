@@ -2,6 +2,8 @@
 import argparse
 from os.path import join, exists
 from utils.misc import RolloutGenerator
+from models.controller import Controller
+from utils.misc import LSIZE, RSIZE, ASIZE
 import torch
 
 parser = argparse.ArgumentParser()
@@ -16,6 +18,9 @@ assert exists(ctrl_file),\
 device = torch.device('cpu')
 
 generator = RolloutGenerator(args.logdir, device, 1000)
+
+controller = Controller(LSIZE, RSIZE, ASIZE) 
+controller.load_state_dict(torch.load(ctrl_file, map_location=device))
 
 with torch.no_grad():
     generator.rollout(None)

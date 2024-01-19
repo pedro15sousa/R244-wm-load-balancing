@@ -40,7 +40,7 @@ args = parser.parse_args()
 n_samples = args.n_samples
 pop_size = args.pop_size
 num_workers = min(args.max_workers, n_samples * pop_size)
-time_limit = 1000
+time_limit = 10000
 
 # create tmp dir if non existent and clean it if existent
 tmp_dir = join(args.logdir, 'tmp')
@@ -162,6 +162,11 @@ if __name__ == '__main__':
     for p_index in range(num_workers):
         Process(target=slave_routine, args=(p_queue, r_queue, e_queue, p_index)).start()
     
+    # Initialize lists to store total actions and variance for plotting
+    action_history = []
+    variance_history = []
+    reward_history = []
+
     controller = Controller(LSIZE, RSIZE, ASIZE)  # dummy instance
 
     # define current best and load parameters
@@ -179,7 +184,11 @@ if __name__ == '__main__':
                                 {'popsize': pop_size})
 
     epoch = 0
-    log_step = 3
+    log_step = 2
+    training_rewards = []
+    training_variances = []
+    total_actions = 0
+    n_actions_per_sample = 1000
 
     # p_queue, r_queue, e_queue = set_queues(num_workers)
 
@@ -192,11 +201,14 @@ if __name__ == '__main__':
         r_list = [0] * pop_size  # result list
         solutions = es.ask()
 
+        batch_actions = 0
+        batch_rewards = []
+
         # push parameters to queue
         for s_id, s in enumerate(solutions):
             for _ in range(n_samples):
                 p_queue.put((s_id, s))
-
+    
         # retrieve results
         if args.display:
             pbar = tqdm(total=pop_size * n_samples)
@@ -205,10 +217,24 @@ if __name__ == '__main__':
                 sleep(.1)
             r_s_id, r = r_queue.get()
             r_list[r_s_id] += r / n_samples
+            batch_rewards.append(r)
             if args.display:
                 pbar.update(1)
         if args.display:
             pbar.close()
+        
+        batch_actions = pop_size * n_samples * n_actions_per_sample  # Compute total actions for the batch
+        total_actions += batch_actions  # Update the total actions
+        action_history.append(total_actions)  # Store the action history for plotting
+
+        # Calculate and store variance
+        batch_variance = np.var(batch_rewards)
+        variance_history.append(batch_variance)
+
+        # Store average reward for plotting
+        avg_reward = -np.mean(r_list)
+        print("Average reward: ", avg_reward)
+        reward_history.append(avg_reward)
 
         es.tell(solutions, r_list)
         es.disp()
@@ -217,6 +243,12 @@ if __name__ == '__main__':
         if epoch % log_step == log_step - 1:
             best_params, best, std_best = evaluate(solutions, r_list)
             print("Current evaluation: {}".format(-best))
+            training_rewards.append(-best)
+            training_variances.append(std_best)
+            print("Lenght of training rewards: ", len(training_rewards))
+            print("Lenght of action history: ", len(action_history))
+            print("Lenght of variance history: ", len(variance_history))
+            print("Lenght of reward history: ", len(reward_history))
             if cur_best != None: print("Current overall best: {}".format(-cur_best))
             if not cur_best or best < cur_best:
                 cur_best = best
@@ -225,7 +257,12 @@ if __name__ == '__main__':
                 torch.save(
                     {'epoch': epoch,
                     'reward': - cur_best,
-                    'state_dict': controller.state_dict()},
+                    'state_dict': controller.state_dict(),
+                    'training_rewards': training_rewards,
+                    'training_variances': training_variances,
+                    'action_history': action_history,
+                    'variance_history': variance_history,
+                    'reward_history': reward_history},
                     join(ctrl_dir, 'best.tar'))
             if - best > args.target_return:
                 print("Terminating controller training with value {}...".format(-best))

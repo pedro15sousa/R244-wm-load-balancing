@@ -211,7 +211,7 @@ class RolloutGenerator(object):
             - next_hidden: torch tensor
         """
         state = obs
-        action = self.controller.select_action(state, hidden[0], deterministic=True)
+        action = self.controller.select_action(state, hidden[0], deterministic=False)
         action_encoded = hot_encode_action(action).unsqueeze(0).to(self.device)
 
         _, _, _, _, _, next_hidden = self.mdrnn(action_encoded, state, hidden)
@@ -224,7 +224,7 @@ class RolloutGenerator(object):
         is the main API of this class.
 
         :args params: parameters as a single 1D np array
-
+s
         :returns: minus cumulative reward
         """
         # copy params into the controller
